@@ -1,0 +1,42 @@
+# syntax=docker/dockerfile:1
+ARG BASE_FROM
+FROM ${BASE_FROM} AS dds
+
+# Install Cyclone DDS RMW
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt-get update && apt-get install -y --no-install-recommends \
+    ros-jazzy-rmw-cyclonedds-cpp
+
+# Create Cyclone DDS configuration file
+RUN mkdir -p /etc/cyclonedds && \
+    echo '<?xml version="1.0" encoding="UTF-8" ?> \
+<CycloneDDS xmlns="https://cdds.io/config" \
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" \
+            xsi:schemaLocation="https://cdds.io/config https://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/master/etc/cyclonedds.xsd"> \
+  <Domain Id="any"> \
+    <General> \
+      <Interfaces> \
+        <NetworkInterface name="lo" /> \
+      </Interfaces> \
+      <AllowMulticast>false</AllowMulticast> \
+      <MaxMessageSize>65500B</MaxMessageSize> \
+    </General> \
+    <Discovery> \
+            <ParticipantIndex>auto</ParticipantIndex> \
+            <MaxAutoParticipantIndex>100</MaxAutoParticipantIndex> \
+            <Peers> \
+                <Peer address="localhost"/> \
+            </Peers> \
+    </Discovery> \
+    <Internal> \
+      <SocketReceiveBufferSize min="32MB"/> \
+      <Watermarks> \
+        <WhcHigh>64MB</WhcHigh> \
+      </Watermarks> \
+    </Internal> \
+  </Domain> \
+</CycloneDDS>' > /etc/cyclonedds/cyclonedds.xml
+
+# Point ROS 2 to use Cyclone DDS
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ENV CYCLONEDDS_URI="file:///etc/cyclonedds/cyclonedds.xml"

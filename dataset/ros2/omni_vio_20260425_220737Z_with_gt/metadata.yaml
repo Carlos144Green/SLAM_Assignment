@@ -1,0 +1,76 @@
+rosbag2_bagfile_information:
+  version: 9
+  storage_identifier: mcap
+  duration:
+    nanoseconds: 69500233415
+  starting_time:
+    nanoseconds_since_epoch: 1777154857689916697
+  message_count: 39308
+  topics_with_message_count:
+    - topic_metadata:
+        name: /tf
+        type: tf2_msgs/msg/TFMessage
+        serialization_format: cdr
+        offered_qos_profiles:
+          - history: keep_last
+            depth: 100
+            reliability: reliable
+            durability: volatile
+            deadline:
+              sec: 0
+              nsec: 0
+            lifespan:
+              sec: 0
+              nsec: 0
+            liveliness: system_default
+            liveliness_lease_duration:
+              sec: 0
+              nsec: 0
+            avoid_ros_namespace_conventions: false
+        type_description_hash: ""
+      message_count: 2745
+    - topic_metadata:
+        name: /ground_truth/odom
+        type: nav_msgs/msg/Odometry
+        serialization_format: cdr
+        offered_qos_profiles:
+          []
+        type_description_hash: ""
+      message_count: 2745
+    - topic_metadata:
+        name: /imu/data
+        type: sensor_msgs/msg/Imu
+        serialization_format: cdr
+        offered_qos_profiles:
+          []
+        type_description_hash: ""
+      message_count: 27790
+    - topic_metadata:
+        name: /stereo/right/color/image_raw
+        type: sensor_msgs/msg/Image
+        serialization_format: cdr
+        offered_qos_profiles:
+          []
+        type_description_hash: ""
+      message_count: 2916
+    - topic_metadata:
+        name: /stereo/left/color/image_raw
+        type: sensor_msgs/msg/Image
+        serialization_format: cdr
+        offered_qos_profiles:
+          []
+        type_description_hash: ""
+      message_count: 3112
+  compression_format: ""
+  compression_mode: ""
+  relative_file_paths:
+    - omni_vio_20260425_220737Z_with_gt_0.mcap
+  files:
+    - path: omni_vio_20260425_220737Z_with_gt_0.mcap
+      starting_time:
+        nanoseconds_since_epoch: 1777154857689916697
+      duration:
+        nanoseconds: 69500233415
+      message_count: 78616
+  custom_data: ~
+  ros_distro: jazzy

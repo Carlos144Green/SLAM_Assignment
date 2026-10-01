@@ -1,0 +1,12 @@
+services:
+  ros1:
+    gpus: all
+    runtime: nvidia
+    environment:
+      NVIDIA_DRIVER_CAPABILITIES: all
+
+  ros2:
+    gpus: all
+    runtime: nvidia
+    environment:
+      NVIDIA_DRIVER_CAPABILITIES: all

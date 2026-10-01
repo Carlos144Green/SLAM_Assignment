@@ -1,0 +1,22 @@
+stereo_calibration_publisher:
+  ros__parameters:
+    imu_frame_id: oak_imu_link
+    image_size: [1200, 800]
+
+    left:
+      frame_id: oak_left_optical_frame
+      intrinsics: [700.0, 700.0, 600.0, 400.0]
+      distortion: [0.0, 0.0, 0.0, 0.0]
+      T_imu_camera: [0.0, -1.0,  0.0, 0.0,
+                     0.0,  0.0, -1.0, 0.0,
+                     1.0,  0.0,  0.0, 0.0,
+                     0.0,  0.0,  0.0, 1.0]
+
+    right:
+      frame_id: oak_right_optical_frame
+      intrinsics: [700.0, 700.0, 600.0, 400.0]
+      distortion: [0.0, 0.0, 0.0, 0.0]
+      T_imu_camera: [0.0, -1.0,  0.0, 0.0,
+                     0.0,  0.0, -1.0, 0.0,
+                     1.0,  0.0,  0.0, 0.02,
+                     0.0,  0.0,  0.0, 1.0]

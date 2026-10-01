@@ -1,0 +1,51 @@
+# syntax=docker/dockerfile:1
+ARG BASE_FROM
+
+FROM ${BASE_FROM} AS base
+
+# Avoid interactive prompts and set timezone to Los Angeles
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/Los_Angeles
+
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt/lists \
+    apt-get update && apt-get install -y --no-install-recommends tzdata locales \
+    && ln -fs /usr/share/zoneinfo/$TZ /etc/localtime \
+    && dpkg-reconfigure -f noninteractive tzdata \
+    && locale-gen en_US.UTF-8 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set locale environment
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
+
+
+# Create a non-root user (e.g., appuser)
+ARG USERNAME=appuser
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt/lists \
+    apt-get update && apt-get install -y --no-install-recommends sudo \
+    && rm -rf /var/lib/apt/lists/*
+
+# Ensure the group exists (create if missing, else reuse)
+RUN if ! getent group ${USER_GID} >/dev/null; then \
+      groupadd --gid ${USER_GID} ${USERNAME}; \
+    else \
+      groupname=$(getent group ${USER_GID} | cut -d: -f1); \
+      groupmod -n ${USERNAME} "$groupname"; \
+    fi \
+    && if ! id -u ${USER_UID} >/dev/null 2>&1; then \
+      useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME}; \
+    else \
+      olduser=$(getent passwd ${USER_UID} | cut -d: -f1); \
+      usermod -l ${USERNAME} -d /home/${USERNAME} -m "$olduser"; \
+    fi \
+    && echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+COPY ros1/entrypoint.sh /entrypoint.sh
+COPY common/download_dataset.py /usr/local/bin/download_slam_dataset.py
+RUN chmod 0755 /entrypoint.sh /usr/local/bin/download_slam_dataset.py

@@ -1,0 +1,59 @@
+services:
+  ros1:
+    image: omnivio/ros1-python:latest
+    container_name: kalibr-omni
+    entrypoint: /entrypoint.sh
+    command: sleep infinity
+    stdin_open: true
+    tty: true
+    privileged: true
+    network_mode: host
+    pid: host
+    ipc: host
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    user: "${HOST_UID}:${HOST_GID}"
+    working_dir: /home/${USERNAME}/catkin_ws
+    environment:
+      HOME: /home/${USERNAME}
+      DISPLAY: "${DISPLAY}"
+      XDG_RUNTIME_DIR: "${XDG_RUNTIME_DIR_HOST}"
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${XDG_RUNTIME_DIR_HOST}:${XDG_RUNTIME_DIR_HOST}
+      - ${HOME}/.Xauthority:/home/${USERNAME}/.Xauthority:ro
+      - ${PROJECT_ROOT}/catkin_ws:/home/${USERNAME}/catkin_ws
+      - ${PROJECT_ROOT}/config:/home/${USERNAME}/config
+      - ${PROJECT_ROOT}/dataset/ros1:/home/${USERNAME}/data
+
+  ros2:
+    image: omnivio/ros2-extended:latest
+    container_name: vio-omni
+    entrypoint: /entrypoint.sh
+    command: sleep infinity
+    stdin_open: true
+    tty: true
+    privileged: true
+    network_mode: host
+    pid: host
+    ipc: host
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    user: "${HOST_UID}:${HOST_GID}"
+    working_dir: /home/${USERNAME}/ros2_ws
+    environment:
+      HOME: /home/${USERNAME}
+      DISPLAY: "${DISPLAY}"
+      XDG_RUNTIME_DIR: /tmp/runtime-${USERNAME}
+      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+      CYCLONEDDS_URI: file:///etc/cyclonedds/cyclonedds.xml
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${HOME}/.Xauthority:/home/${USERNAME}/.Xauthority:ro
+      - ${PROJECT_ROOT}/ros2_ws:/home/${USERNAME}/ros2_ws
+      - ${PROJECT_ROOT}/dataset/ros2:/home/${USERNAME}/data
+      - ${OUTPUT_DIR}:/home/${USERNAME}/output
