@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+# Headless-safe: a GUI backend fails here with
+# "authorization required but no authorization protocol specified"
+# when DISPLAY is set but X11 auth is not.
+import matplotlib
+matplotlib.use('Agg')
+
 print("importing libraries")
 import rosbag
 import cv_bridge
