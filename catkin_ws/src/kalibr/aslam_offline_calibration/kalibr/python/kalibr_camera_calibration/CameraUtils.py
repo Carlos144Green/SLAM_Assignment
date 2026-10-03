@@ -29,6 +29,101 @@ import sys
 # make numpy print prettier
 np.set_printoptions(suppress=True)
 
+# Report figures are wider than Matplotlib's default so two panels stay readable.
+_REPORT_FIGSIZE = (11, 8)
+
+
+def _finite_xy(points):
+    """Drop unobserved corners stored as None so percentiles stay numeric."""
+    if points is None:
+        return None
+    rows = []
+    for row in points:
+        try:
+            vals = np.asarray(row, dtype=float)
+        except (TypeError, ValueError):
+            continue
+        if vals.shape == (2,) and np.all(np.isfinite(vals)):
+            rows.append(vals)
+    if not rows:
+        return None
+    return np.vstack(rows)
+
+
+def _prepare_report_figure(fno, clearFigure):
+    f = pl.figure(fno)
+    f.set_size_inches(_REPORT_FIGSIZE)
+    if clearFigure:
+        f.clf()
+    return f
+
+
+def _binned_error_band(angles, errors, nbins=40):
+    """Return bin centers and the median plus 5th/95th percentile of errors."""
+    n = len(angles)
+    if n == 0:
+        return None
+    nbins = int(min(nbins, max(5, n / 20)))
+    lo = float(np.min(angles))
+    hi = float(np.max(angles))
+    if hi <= lo:
+        hi = lo + 1.0
+    edges = np.linspace(lo, hi, nbins + 1)
+    centers = 0.5 * (edges[:-1] + edges[1:])
+    med = np.empty(nbins)
+    p05 = np.empty(nbins)
+    p95 = np.empty(nbins)
+    valid = np.zeros(nbins, dtype=bool)
+    for i in range(nbins):
+        if i == nbins - 1:
+            mask = (angles >= edges[i]) & (angles <= edges[i + 1])
+        else:
+            mask = (angles >= edges[i]) & (angles < edges[i + 1])
+        if not np.any(mask):
+            continue
+        vals = errors[mask]
+        med[i] = np.median(vals)
+        p05[i] = np.percentile(vals, 5)
+        p95[i] = np.percentile(vals, 95)
+        valid[i] = True
+    if not np.any(valid):
+        return None
+    return centers[valid], med[valid], p05[valid], p95[valid]
+
+
+def _plot_angle_vs_error(sae, xlabel, fno, clearFigure, noShow, title):
+    f = _prepare_report_figure(fno, clearFigure)
+    f.suptitle(title)
+
+    pl.subplot(121)
+    if sae.size > 0:
+        pl.plot(sae[:, 0], sae[:, 1], '.', color='C0', alpha=0.15, markersize=3)
+        band = _binned_error_band(sae[:, 0], sae[:, 1])
+        if band is not None:
+            centers, med, p05, p95 = band
+            pl.fill_between(centers, p05, p95, color='C1', alpha=0.25, linewidth=0, label='5-95 percentile')
+            pl.plot(centers, med, color='C1', lw=2, label='median')
+            pl.legend(loc='upper right', fontsize=8)
+        ylim = float(np.percentile(sae[:, 1], 99))
+        if ylim <= 0.0:
+            ylim = 1.0
+        pl.ylim(0.0, ylim * 1.05)
+        pl.title('y-axis clipped at 99th percentile')
+    pl.grid(True)
+    pl.xlabel(xlabel)
+    pl.ylabel('reprojection error (pixels)')
+
+    pl.subplot(122)
+    if sae.size > 0:
+        pl.hist(sae[:, 0], bins=40)
+    pl.grid(True)
+    pl.xlabel(xlabel)
+    pl.ylabel('count')
+
+    f.tight_layout(rect=[0, 0, 1, 0.95])
+    if not noShow:
+        pl.show()
+
 
 def normalize(v):
     return v / np.linalg.norm(v)
@@ -177,88 +272,59 @@ def plotPolarError(cself, cam_id, fno=1, clearFigure=True, stats=None, noShow=Fa
     if stats is None:
         stats = getAllPointStatistics(cself, cam_id)
     angleError = np.array([ [ np.degrees(s.polarAngle), math.sqrt(s.squaredError)] for s in stats ])
-    # sort by polar angle
-    sae = angleError[ angleError[:,0].argsort() ]
-    
-    # Now plot
-    f = pl.figure(fno)
-    if clearFigure:
-        f.clf()
-    f.suptitle(title)
-        
-    pl.subplot(121)
-    pl.plot(sae[:,0],sae[:,1],'bx-')
-    pl.grid('on')
-    pl.xlabel('polar angle (deg)')
-    pl.ylabel('reprojection error (pixels)')
-    pl.subplot(122)
-    pl.hist(sae[:,0])
-    pl.grid('on')
-    pl.xlabel('polar angle (deg)')
-    pl.ylabel('count')
-    if not noShow:
-        pl.show()
+    _plot_angle_vs_error(angleError, 'polar angle (deg)', fno, clearFigure, noShow, title)
 
 def plotAzumithalError(cself, cam_id, fno=1, clearFigure=True, stats=None, noShow=False, title=""):
     if stats is None:
         stats = getAllPointStatistics(cself, cam_id)
     angleError = np.array([ [ np.degrees(s.azumithalAngle), math.sqrt(s.squaredError)] for s in stats ])
-    # sort by azimuthal angle
-    sae = angleError[ angleError[:,0].argsort() ]
-    # Now plot
-    f = pl.figure(fno)
-    if clearFigure:
-        f.clf()
-    f.suptitle(title)
-    
-    pl.subplot(121)
-    pl.plot(sae[:,0],sae[:,1],'bx-')
-    pl.grid('on')
-    pl.xlabel('azimuthal angle (deg)')
-    pl.ylabel('reprojection error (pixels)')
-    pl.subplot(122)
-    pl.hist(sae[:,0])
-    pl.grid('on')
-    pl.xlabel('azimuthal angle (deg)')
-    pl.ylabel('count')
-    if not noShow:
-        pl.show()
+    _plot_angle_vs_error(angleError, 'azimuthal angle (deg)', fno, clearFigure, noShow, title)
 
 def plotAllReprojectionErrors(cself, cam_id, fno=1, noShow=False, clearFigure=True, title=""):
-    # left: observations and projecitons
-    # right: scatterplot of reprojection errors
+    # left: observations
+    # right: scatterplot of reprojection errors, clipped so outliers do not hide the cloud
     all_corners, reprojections, rerrs_xy = getReprojectionErrors(cself, cam_id)
     resolution = (cself.cameras[cam_id].geometry.projection().ru(), cself.cameras[cam_id].geometry.projection().rv())
 
-    #create figure
-    f = pl.figure(fno)
-    if clearFigure:    
-        f.clf()
+    f = _prepare_report_figure(fno, clearFigure)
     f.suptitle(title)
     
     values = np.arange(len(cself.views))/np.double(len(cself.views))
     cmap = pl.cm.jet(values,alpha=0.5)
     
-    #detected corners plot
-    a=pl.subplot(121)
+    #detected corners plot: dots only, so overlapping frames stay separable
+    pl.subplot(121)
     for view_id, corners in enumerate(all_corners):
+        corners = _finite_xy(corners)
         if corners is not None: #if this camerea sees the target in this view
             color = cmap[view_id,:]
-            pl.plot(corners[:,0], corners[:,1],'o-', mfc=color, c=color, mec=color)
+            pl.plot(corners[:,0], corners[:,1], '.', mfc=color, c=color, mec=color, markersize=2, alpha=0.35)
 
     #add an empty image to force the aspect ratio
     I=np.zeros((resolution[1], resolution[0]))
     pl.imshow(I, cmap='Greys')
 
     #reprojection errors scatter plot
-    sub = pl.subplot(122)
+    ax = pl.subplot(122)
+    err_blocks = []
     for view_id, rerrs in enumerate(rerrs_xy):
+        rerrs = _finite_xy(rerrs)
         if rerrs is not None: #if this camerea sees the target in this view
             color = cmap[view_id,:]
-            pl.plot(rerrs[:,0], rerrs[:,1], 'x', lw=3, mew=3, color=color)
+            pl.plot(rerrs[:,0], rerrs[:,1], '.', markersize=2, alpha=0.25, color=color)
+            err_blocks.append(rerrs)
 
-    pl.axis('equal')
-    pl.grid('on')
+    if err_blocks:
+        stacked = np.vstack(err_blocks)
+        lim = float(np.percentile(np.abs(stacked), 99))
+        if lim <= 0.0:
+            lim = 1.0
+        lim = lim * 1.05
+        ax.set_xlim(-lim, lim)
+        ax.set_ylim(-lim, lim)
+        ax.set_aspect('equal', adjustable='box')
+        ax.set_title('axes clipped at 99th percentile')
+    pl.grid(True)
     pl.xlabel('error x (pix)')
     pl.ylabel('error y (pix)')
 
@@ -266,6 +332,7 @@ def plotAllReprojectionErrors(cself, cam_id, fno=1, noShow=False, clearFigure=Tr
     SM.set_array(np.arange(len(cself.views)));
     cb = pl.colorbar(SM)
     cb.set_label('image index')
+    f.tight_layout(rect=[0, 0, 1, 0.95])
     if not noShow:
         pl.show()
 
