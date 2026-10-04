@@ -432,7 +432,11 @@ def main():
             G=None; 
             if numCams>1: 
                 G=graph
-            kcc.generateReport(calibrator, reportFile, showOnScreen=not parsed.dontShowReport, graph=G, removedOutlierCorners=removedOutlierCorners);
+            # The on-screen report uses a wx window. With the Agg backend that
+            # window still opens $DISPLAY and fails when X11 auth is missing.
+            # The PDF is already written either way.
+            show_on_screen = (not parsed.dontShowReport) and (matplotlib.get_backend().lower() != 'agg')
+            kcc.generateReport(calibrator, reportFile, showOnScreen=show_on_screen, graph=G, removedOutlierCorners=removedOutlierCorners);
             print("  Report written to {0}".format(reportFile))
             print("")
             
