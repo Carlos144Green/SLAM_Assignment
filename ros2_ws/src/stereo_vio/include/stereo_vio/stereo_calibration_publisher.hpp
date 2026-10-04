@@ -32,6 +32,7 @@
 #include "tf2_ros/static_transform_broadcaster.h"
 
 #include <Eigen/Dense>
+#include <opencv2/core.hpp>
 
 #include <array>
 #include <cstdint>
@@ -59,6 +60,7 @@ private:
     std::string camera_frame_id;
     std::string optical_frame_id;
     Eigen::Vector4d intrinsics;
+    double xi;
     Eigen::Vector4d distortion;
     Eigen::Matrix4d t_imu_camera_frame;
     Eigen::Matrix4d t_imu_optical_frame;
@@ -84,6 +86,10 @@ private:
     const rclcpp::Time & stamp) const;
 
   void compute_rectified_camera_infos();
+  [[nodiscard]] sensor_msgs::msg::Image rectify_image(
+    const sensor_msgs::msg::Image & image_msg,
+    const cv::Mat & map_x,
+    const cv::Mat & map_y) const;
   void publish_left_camera_info(const sensor_msgs::msg::Image::ConstSharedPtr & image_msg);
   void publish_right_camera_info(const sensor_msgs::msg::Image::ConstSharedPtr & image_msg);
   void publish_camera_frames();
@@ -98,10 +104,16 @@ private:
   sensor_msgs::msg::CameraInfo right_camera_info_;
   sensor_msgs::msg::CameraInfo left_rectified_camera_info_;
   sensor_msgs::msg::CameraInfo right_rectified_camera_info_;
+  cv::Mat left_map_x_;
+  cv::Mat left_map_y_;
+  cv::Mat right_map_x_;
+  cv::Mat right_map_y_;
   rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr left_camera_info_pub_;
   rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr right_camera_info_pub_;
   rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr left_rectified_camera_info_pub_;
   rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr right_rectified_camera_info_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr left_rect_image_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr right_rect_image_pub_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr left_image_sub_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr right_image_sub_;
   std::unique_ptr<tf2_ros::StaticTransformBroadcaster> frame_broadcaster_;

@@ -30,9 +30,11 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/core/eigen.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <functional>
 #include <stdexcept>
@@ -48,6 +50,8 @@ constexpr char kLeftRectifiedCameraInfoTopic[] = "left/rectified_camera_info";
 constexpr char kRightRectifiedCameraInfoTopic[] = "right/rectified_camera_info";
 constexpr char kLeftImageTopic[] = "left/image";
 constexpr char kRightImageTopic[] = "right/image";
+constexpr char kLeftRectImageTopic[] = "left/image_rect";
+constexpr char kRightRectImageTopic[] = "right/image_rect";
 constexpr char kDistortionModel[] = "plumb_bob";
 constexpr char kBaseFrameId[] = "base_link";
 constexpr std::size_t kCalibrationQueueDepth = 1000;
@@ -168,6 +172,112 @@ template<typename T, std::size_t Size>
   return camera_matrix;
 }
 
+[[nodiscard]] Eigen::Matrix3d perspective_matrix_from_omni(
+  const Eigen::Vector4d & intrinsics,
+  const double xi)
+{
+  if (xi <= -1.0) {
+    throw std::invalid_argument("Omni xi must be greater than -1");
+  }
+  Eigen::Matrix3d camera_matrix = camera_matrix_from_intrinsics(intrinsics);
+  const double central_scale = 1.0 + xi;
+  camera_matrix(0, 0) /= central_scale;
+  camera_matrix(1, 1) /= central_scale;
+  return camera_matrix;
+}
+
+[[nodiscard]] bool project_mei(
+  const Eigen::Vector3d & point,
+  const double xi,
+  const Eigen::Vector4d & intrinsics,
+  const Eigen::Vector4d & distortion,
+  float & pixel_u,
+  float & pixel_v)
+{
+  const double depth_norm = point.norm();
+  const double fov_parameter = xi <= 1.0 ? xi : 1.0 / xi;
+  if (point.z() <= -(fov_parameter * depth_norm)) {
+    return false;
+  }
+
+  const double rz = 1.0 / (point.z() + xi * depth_norm);
+  double x = point.x() * rz;
+  double y = point.y() * rz;
+  const double x2 = x * x;
+  const double y2 = y * y;
+  const double xy = x * y;
+  const double r2 = x2 + y2;
+  const double radial = distortion(0) * r2 + distortion(1) * r2 * r2;
+  x += x * radial + 2.0 * distortion(2) * xy + distortion(3) * (r2 + 2.0 * x2);
+  y += y * radial + 2.0 * distortion(3) * xy + distortion(2) * (r2 + 2.0 * y2);
+  pixel_u = static_cast<float>(intrinsics(0) * x + intrinsics(2));
+  pixel_v = static_cast<float>(intrinsics(1) * y + intrinsics(3));
+  return std::isfinite(pixel_u) && std::isfinite(pixel_v);
+}
+
+void build_omni_rectify_maps(
+  const Eigen::Vector4d & intrinsics,
+  const double xi,
+  const Eigen::Vector4d & distortion,
+  const cv::Mat & rectification,
+  const cv::Mat & projection,
+  const cv::Size & image_size,
+  cv::Mat & map_x,
+  cv::Mat & map_y)
+{
+  Eigen::Matrix3d rectification_eigen;
+  cv::cv2eigen(rectification, rectification_eigen);
+  const Eigen::Matrix3d inverse_rectification = rectification_eigen.transpose();
+  const double fx = projection.at<double>(0, 0);
+  const double fy = projection.at<double>(1, 1);
+  const double cx = projection.at<double>(0, 2);
+  const double cy = projection.at<double>(1, 2);
+  if (fx == 0.0 || fy == 0.0) {
+    throw std::invalid_argument("Rectified projection focal length cannot be zero");
+  }
+
+  map_x.create(image_size, CV_32FC1);
+  map_y.create(image_size, CV_32FC1);
+  for (int row = 0; row < image_size.height; ++row) {
+    float * map_x_row = map_x.ptr<float>(row);
+    float * map_y_row = map_y.ptr<float>(row);
+    for (int col = 0; col < image_size.width; ++col) {
+      const Eigen::Vector3d rectified_ray(
+        (static_cast<double>(col) - cx) / fx,
+        (static_cast<double>(row) - cy) / fy,
+        1.0);
+      const Eigen::Vector3d camera_ray = inverse_rectification * rectified_ray;
+      float pixel_u = -1.0F;
+      float pixel_v = -1.0F;
+      if (!project_mei(camera_ray, xi, intrinsics, distortion, pixel_u, pixel_v)) {
+        pixel_u = -1.0F;
+        pixel_v = -1.0F;
+      }
+      map_x_row[col] = pixel_u;
+      map_y_row[col] = pixel_v;
+    }
+  }
+}
+
+[[nodiscard]] int image_type_from_encoding(
+  const std::string & encoding,
+  std::size_t & bytes_per_pixel)
+{
+  if (encoding == "mono8" || encoding == "8UC1") {
+    bytes_per_pixel = 1U;
+    return CV_8UC1;
+  }
+  if (encoding == "bgr8" || encoding == "rgb8" || encoding == "8UC3") {
+    bytes_per_pixel = 3U;
+    return CV_8UC3;
+  }
+  if (encoding == "bgra8" || encoding == "rgba8" || encoding == "8UC4") {
+    bytes_per_pixel = 4U;
+    return CV_8UC4;
+  }
+  throw std::invalid_argument("Unsupported image encoding: " + encoding);
+}
+
 [[nodiscard]] geometry_msgs::msg::Quaternion eigen_quaternion_to_msg(
   const Eigen::Quaterniond & quaternion)
 {
@@ -220,6 +330,12 @@ StereoCalibrationPublisher::StereoCalibrationPublisher(const rclcpp::NodeOptions
     this->create_publisher<sensor_msgs::msg::CameraInfo>(
       kRightRectifiedCameraInfoTopic,
       calibration_qos);
+  this->left_rect_image_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
+    kLeftRectImageTopic,
+    calibration_qos);
+  this->right_rect_image_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
+    kRightRectImageTopic,
+    calibration_qos);
 
   this->left_image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
     kLeftImageTopic,
@@ -249,6 +365,7 @@ StereoCalibrationPublisher::CameraCalibration StereoCalibrationPublisher::load_c
     camera_frame_id_from_optical_frame_id(optical_frame_id),
     optical_frame_id,
     required_vector4d(*this, name + ".intrinsics"),
+    this->declare_parameter<double>(name + ".xi", 0.0),
     required_vector4d(*this, name + ".distortion"),
     t_imu_optical_frame * optical_from_camera_transform(),
     t_imu_optical_frame,
@@ -268,12 +385,14 @@ sensor_msgs::msg::CameraInfo StereoCalibrationPublisher::make_camera_info(
   camera_info.width = static_cast<uint32_t>(this->image_size_[0]);
   camera_info.height = static_cast<uint32_t>(this->image_size_[1]);
   camera_info.distortion_model = kDistortionModel;
-  camera_info.d = {
-    camera.distortion(0),
-    camera.distortion(1),
-    camera.distortion(2),
-    camera.distortion(3),
-    0.0};
+  camera_info.d = camera.xi == 0.0 ?
+    std::vector<double>{
+      camera.distortion(0),
+      camera.distortion(1),
+      camera.distortion(2),
+      camera.distortion(3),
+      0.0} :
+    std::vector<double>{0.0, 0.0, 0.0, 0.0, 0.0};
   camera_info.k = {fx, 0.0, cx, 0.0, fy, cy, 0.0, 0.0, 1.0};
   camera_info.r = kIdentityRectification;
   camera_info.p = {fx, 0.0, cx, 0.0, 0.0, fy, cy, 0.0, 0.0, 0.0, 1.0, 0.0};
@@ -315,12 +434,20 @@ void StereoCalibrationPublisher::compute_rectified_camera_infos()
   const Eigen::Matrix3d r_left_right = r_right_imu * r_left_imu.transpose();
   const Eigen::Vector3d t_left_right = t_right_imu - r_left_right * t_left_imu;
 
-  const Eigen::Matrix3d k_left_eigen =
+  const bool use_omni_model =
+    this->left_camera_.xi != 0.0 || this->right_camera_.xi != 0.0;
+  const Eigen::Matrix3d k_left_eigen = use_omni_model ?
+    perspective_matrix_from_omni(this->left_camera_.intrinsics, this->left_camera_.xi) :
     camera_matrix_from_intrinsics(this->left_camera_.intrinsics);
-  const Eigen::Matrix3d k_right_eigen =
+  const Eigen::Matrix3d k_right_eigen = use_omni_model ?
+    perspective_matrix_from_omni(this->right_camera_.intrinsics, this->right_camera_.xi) :
     camera_matrix_from_intrinsics(this->right_camera_.intrinsics);
-  const Eigen::Matrix<double, 1, 4> d_left_eigen = this->left_camera_.distortion.transpose();
-  const Eigen::Matrix<double, 1, 4> d_right_eigen = this->right_camera_.distortion.transpose();
+  const Eigen::Matrix<double, 1, 4> d_left_eigen = use_omni_model ?
+    Eigen::Matrix<double, 1, 4>::Zero() :
+    this->left_camera_.distortion.transpose();
+  const Eigen::Matrix<double, 1, 4> d_right_eigen = use_omni_model ?
+    Eigen::Matrix<double, 1, 4>::Zero() :
+    this->right_camera_.distortion.transpose();
 
   cv::Mat k_left;
   cv::Mat k_right;
@@ -376,6 +503,47 @@ void StereoCalibrationPublisher::compute_rectified_camera_infos()
     this->make_rectified_camera_info(this->left_camera_info_);
   this->right_rectified_camera_info_ =
     this->make_rectified_camera_info(this->right_camera_info_);
+
+  if (use_omni_model) {
+    build_omni_rectify_maps(
+      this->left_camera_.intrinsics,
+      this->left_camera_.xi,
+      this->left_camera_.distortion,
+      r1,
+      p1,
+      image_size,
+      this->left_map_x_,
+      this->left_map_y_);
+    build_omni_rectify_maps(
+      this->right_camera_.intrinsics,
+      this->right_camera_.xi,
+      this->right_camera_.distortion,
+      r2,
+      p2,
+      image_size,
+      this->right_map_x_,
+      this->right_map_y_);
+    return;
+  }
+
+  cv::initUndistortRectifyMap(
+    k_left,
+    d_left,
+    r1,
+    p1,
+    image_size,
+    CV_32FC1,
+    this->left_map_x_,
+    this->left_map_y_);
+  cv::initUndistortRectifyMap(
+    k_right,
+    d_right,
+    r2,
+    p2,
+    image_size,
+    CV_32FC1,
+    this->right_map_x_,
+    this->right_map_y_);
 }
 
 Eigen::Vector3d StereoCalibrationPublisher::compute_stereo_center_in_imu() const
@@ -436,6 +604,79 @@ geometry_msgs::msg::TransformStamped StereoCalibrationPublisher::make_transform(
   return transform;
 }
 
+sensor_msgs::msg::Image StereoCalibrationPublisher::rectify_image(
+  const sensor_msgs::msg::Image & image_msg,
+  const cv::Mat & map_x,
+  const cv::Mat & map_y) const
+{
+  if (image_msg.width == 0U || image_msg.height == 0U) {
+    throw std::invalid_argument("Image message dimensions cannot be zero");
+  }
+  if (
+    static_cast<int>(image_msg.width) != map_x.cols ||
+    static_cast<int>(image_msg.height) != map_x.rows)
+  {
+    throw std::invalid_argument("Image message size does not match the calibration image size");
+  }
+
+  std::size_t bytes_per_pixel = 0U;
+  const int image_type = image_type_from_encoding(image_msg.encoding, bytes_per_pixel);
+  const std::size_t minimum_step = static_cast<std::size_t>(image_msg.width) * bytes_per_pixel;
+  if (image_msg.step < minimum_step) {
+    throw std::invalid_argument("Image message step is smaller than image width");
+  }
+  const std::size_t required_bytes =
+    static_cast<std::size_t>(image_msg.step) *
+    static_cast<std::size_t>(image_msg.height - 1U) + minimum_step;
+  if (image_msg.data.size() < required_bytes) {
+    throw std::invalid_argument("Image message data is smaller than expected");
+  }
+
+  const cv::Mat raw_image(
+    static_cast<int>(image_msg.height),
+    static_cast<int>(image_msg.width),
+    image_type,
+    const_cast<unsigned char *>(image_msg.data.data()),
+    image_msg.step);
+  cv::Mat rectified_image;
+  cv::remap(
+    raw_image,
+    rectified_image,
+    map_x,
+    map_y,
+    cv::INTER_CUBIC,
+    cv::BORDER_CONSTANT);
+
+  sensor_msgs::msg::Image rectified_message;
+  rectified_message.header = image_msg.header;
+  rectified_message.height = static_cast<uint32_t>(rectified_image.rows);
+  rectified_message.width = static_cast<uint32_t>(rectified_image.cols);
+  rectified_message.encoding = image_msg.encoding;
+  rectified_message.is_bigendian = image_msg.is_bigendian;
+  rectified_message.step =
+    static_cast<uint32_t>(rectified_image.cols) *
+    static_cast<uint32_t>(rectified_image.elemSize());
+  const std::size_t rectified_bytes =
+    static_cast<std::size_t>(rectified_message.step) *
+    static_cast<std::size_t>(rectified_message.height);
+  rectified_message.data.resize(rectified_bytes);
+  if (rectified_image.isContinuous() &&
+    rectified_image.step == static_cast<size_t>(rectified_message.step))
+  {
+    const unsigned char * source = rectified_image.ptr<unsigned char>(0);
+    std::copy(source, source + rectified_bytes, rectified_message.data.begin());
+  } else {
+    for (int row = 0; row < rectified_image.rows; ++row) {
+      const unsigned char * source_row = rectified_image.ptr<unsigned char>(row);
+      unsigned char * destination_row =
+        rectified_message.data.data() +
+        static_cast<std::size_t>(row) * rectified_message.step;
+      std::copy(source_row, source_row + rectified_message.step, destination_row);
+    }
+  }
+  return rectified_message;
+}
+
 void StereoCalibrationPublisher::publish_left_camera_info(
   const sensor_msgs::msg::Image::ConstSharedPtr & image_msg)
 {
@@ -443,6 +684,8 @@ void StereoCalibrationPublisher::publish_left_camera_info(
   this->left_rectified_camera_info_.header.stamp = image_msg->header.stamp;
   this->left_camera_info_pub_->publish(this->left_camera_info_);
   this->left_rectified_camera_info_pub_->publish(this->left_rectified_camera_info_);
+  this->left_rect_image_pub_->publish(
+    this->rectify_image(*image_msg, this->left_map_x_, this->left_map_y_));
 }
 
 void StereoCalibrationPublisher::publish_right_camera_info(
@@ -452,6 +695,8 @@ void StereoCalibrationPublisher::publish_right_camera_info(
   this->right_rectified_camera_info_.header.stamp = image_msg->header.stamp;
   this->right_camera_info_pub_->publish(this->right_camera_info_);
   this->right_rectified_camera_info_pub_->publish(this->right_rectified_camera_info_);
+  this->right_rect_image_pub_->publish(
+    this->rectify_image(*image_msg, this->right_map_x_, this->right_map_y_));
 }
 
 void StereoCalibrationPublisher::publish_camera_frames()
