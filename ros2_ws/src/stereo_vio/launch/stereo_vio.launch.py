@@ -45,11 +45,6 @@ def generate_launch_description():
     odometry_error_report_file = PathJoinSubstitution(
         [EnvironmentVariable("HOME"), "output", "stereo_vio_odometry_error.txt"]
     )
-    rectify_parameters = {
-        "use_sim_time": True,
-        "queue_size": 500,
-        "interpolation": 2,
-    }
     stereo_calibration_publisher = ComposableNode(
         package="stereo_vio",
         plugin="stereo_vio::StereoCalibrationPublisher",
@@ -57,35 +52,13 @@ def generate_launch_description():
         parameters=[calib_file, {"use_sim_time": True}],
         remappings=[
             ("left/image", "/stereo/left/color/image_raw"),
+            ("left/image_rect", "/stereo/left/color/image_rect"),
             ("left/camera_info", "/stereo/left/color/camera_info"),
             ("left/rectified_camera_info", "/stereo/left/color/camera_info_rect"),
             ("right/image", "/stereo/right/color/image_raw"),
+            ("right/image_rect", "/stereo/right/color/image_rect"),
             ("right/camera_info", "/stereo/right/color/camera_info"),
             ("right/rectified_camera_info", "/stereo/right/color/camera_info_rect"),
-        ],
-        extra_arguments=[{"use_intra_process_comms": True}],
-    )
-
-    left_rectify_node = ComposableNode(
-        package="image_proc",
-        plugin="image_proc::RectifyNode",
-        name="left_rectify_node",
-        parameters=[rectify_parameters],
-        remappings=[
-            ("image", "/stereo/left/color/image_raw"),
-            ("image_rect", "/stereo/left/color/image_rect"),
-        ],
-        extra_arguments=[{"use_intra_process_comms": True}],
-    )
-
-    right_rectify_node = ComposableNode(
-        package="image_proc",
-        plugin="image_proc::RectifyNode",
-        name="right_rectify_node",
-        parameters=[rectify_parameters],
-        remappings=[
-            ("image", "/stereo/right/color/image_raw"),
-            ("image_rect", "/stereo/right/color/image_rect"),
         ],
         extra_arguments=[{"use_intra_process_comms": True}],
     )
@@ -170,8 +143,6 @@ def generate_launch_description():
         output="screen",
         composable_node_descriptions=[
             stereo_calibration_publisher,
-            left_rectify_node,
-            right_rectify_node,
             vio_node,
             odometry_error_node,
             rerun_wrapper_node,
