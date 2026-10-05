@@ -1,0 +1,10 @@
+Commands Here:
+
+bash scripts/start.sh ros1
+
+
+
+bash scripts/start.sh ros2
+
+
+ros2 launch stereo_vio stereo_vio.launch.py

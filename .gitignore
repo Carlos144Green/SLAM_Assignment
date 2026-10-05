@@ -17,7 +17,6 @@ install
 /ros2_ws/build/rerun_wrapper/_deps/rerun_sdk-src/lib/rerun_c__win_x64.lib
 /ros2_ws/build/rerun_wrapper/_deps/rerun_sdk-subbuild/rerun_sdk-populate-prefix/src/rerun_cpp_sdk.zip
 /ros2_ws/build/rerun_wrapper/librerun_wrapper_component.so
-A Help File.txt
 
 # Kalibr artifacts kept out of ignore so they can be committed.
 #/dataset/ros1/omni_stereo_20260425_215907Z-camchain-Radtan.yaml
