@@ -1,0 +1,13 @@
+---
+description: Do not change odometry error computation or report generation
+alwaysApply: true
+---
+
+# Odometry error node
+
+Do not modify the odometry error computation or report generation in:
+
+- `ros2_ws/src/stereo_vio/include/stereo_vio/odometry_error_node.hpp`
+- `ros2_ws/src/stereo_vio/src/odometry_error_node.cpp`
+
+Leave those sections as they are. Other edits in the repo are fine.
