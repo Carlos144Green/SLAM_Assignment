@@ -9,9 +9,7 @@ rosrun kalibr kalibr_calibrate_cameras \
   --models omni-radtan omni-radtan \
   --target ~/config/aprilgrid.yaml \
   --bag-from-to 0 50 \
-  --approx-sync 0.005 \
-  --use-blakezisserman
-
+  --approx-sync 0.005
 
 kalibr_calibrate_imu_camera \
   --bag ~/data/omni_stereointertial_20260425_220304Z.bag \
@@ -19,11 +17,7 @@ kalibr_calibrate_imu_camera \
   --imu ~/config/imu.yaml \
   --target ~/config/aprilgrid.yaml
 
-rosrun kalibr kalibr_calibrate_imu_camera \
-  --bag ~/data/omni_stereointertial_20260425_220304Z.bag \
-  --cams ~/data/omni_stereo_20260425_215907Z-camchain-Radtan.yaml \
-  --imu ~/config/imu.yaml \
-  --target ~/config/aprilgrid.yaml
+rosrun kalibr kalibr_calibrate_imu_camera   --bag ~/data/omni_stereointertial_20260425_220304Z.bag   --cams ~/data/omni_stereo_20260425_215907Z-camchain-omni-50clipped-approx_005.yaml   --imu ~/config/imu.yaml   --target ~/config/aprilgrid.yaml
 
 
 
@@ -31,3 +25,54 @@ bash scripts/start.sh ros2
 
 
 ros2 launch stereo_vio stereo_vio.launch.py
+
+
+/home/carlos/catkin_ws/src/kalibr/aslam_offline_calibration/kalibr/python/kalibr_imu_camera_calibration/IccPlots.py:238: MatplotlibDeprecationWarning: Adding an axes using the same arguments as a previous axes currently reuses the earlier instance.  In a future version, a new instance will always be created and returned.  Meanwhile, this warning can be suppressed, and the future behavior ensured, by passing a unique label to each axes instance.
+  ax=pl.subplot(3, 1, r+1)
+/home/carlos/catkin_ws/src/kalibr/aslam_offline_calibration/kalibr/python/kalibr_imu_camera_calibration/IccPlots.py:157: MatplotlibDeprecationWarning: Adding an axes using the same arguments as a previous axes currently reuses the earlier instance.  In a future version, a new instance will always be created and returned.  Meanwhile, this warning can be suppressed, and the future behavior ensured, by passing a unique label to each axes instance.
+  pl.subplot(3, 1, i+1)
+/home/carlos/catkin_ws/src/kalibr/aslam_offline_calibration/kalibr/python/kalibr_imu_camera_calibration/IccPlots.py:207: MatplotlibDeprecationWarning: Adding an axes using the same arguments as a previous axes currently reuses the earlier instance.  In a future version, a new instance will always be created and returned.  Meanwhile, this warning can be suppressed, and the future behavior ensured, by passing a unique label to each axes instance.
+  ax=pl.subplot(3, 1, r+1)
+/home/carlos/catkin_ws/src/kalibr/aslam_offline_calibration/kalibr/python/kalibr_imu_camera_calibration/IccPlots.py:177: MatplotlibDeprecationWarning: Adding an axes using the same arguments as a previous axes currently reuses the earlier instance.  In a future version, a new instance will always be created and returned.  Meanwhile, this warning can be suppressed, and the future behavior ensured, by passing a unique label to each axes instance.
+  pl.subplot(3, 1, i+1)
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
+    self.bitmap = wx.Bitmap(self._width, self._height)
+wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
+    self.bitmap = wx.Bitmap(self._width, self._height)
+wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
+    self.bitmap = wx.Bitmap(self._width, self._height)
+wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
+    self.bitmap = wx.Bitmap(self._width, self._height)
+wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
+    self.bitmap = wx.Bitmap(self._width, self._height)
+wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
+    self.bitmap = wx.Bitmap(self._width, self._height)
+wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
+    self.bitmap = wx.Bitmap(self._width, self._height)
+wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
+    self.bitmap = wx.Bitmap(self._width, self._height)
+wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
+    self.bitmap = wx.Bitmap(self._width, self._height)
+wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
+    self.bitmap = wx.Bitmap(self._width, self._height)
+wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
+

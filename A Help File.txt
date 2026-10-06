@@ -1,0 +1,33 @@
+Commands Here:
+
+bash scripts/start.sh ros1
+
+
+rosrun kalibr kalibr_calibrate_cameras \
+  --bag ~/data/omni_stereo_20260425_215907Z.bag \
+  --topics /stereo/left/color/image_raw /stereo/right/color/image_raw \
+  --models omni-radtan omni-radtan \
+  --target ~/config/aprilgrid.yaml \
+  --bag-from-to 0 50 \
+  --approx-sync 0.005 \
+  --use-blakezisserman
+
+
+kalibr_calibrate_imu_camera \
+  --bag ~/data/omni_stereointertial_20260425_220304Z.bag \
+  --cam camchain.yaml \
+  --imu ~/config/imu.yaml \
+  --target ~/config/aprilgrid.yaml
+
+rosrun kalibr kalibr_calibrate_imu_camera \
+  --bag ~/data/omni_stereointertial_20260425_220304Z.bag \
+  --cams ~/data/omni_stereo_20260425_215907Z-camchain-Radtan.yaml \
+  --imu ~/config/imu.yaml \
+  --target ~/config/aprilgrid.yaml
+
+
+
+bash scripts/start.sh ros2
+
+
+ros2 launch stereo_vio stereo_vio.launch.py
