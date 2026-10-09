@@ -155,8 +155,8 @@ def plotAccelBias(cself, imu_idx, fno=1, clearFigure=True, noShow=False):
     bounds = 3. * sigma_rw * np.sqrt(times)
     for i in range(3):
         pl.subplot(3, 1, i+1)
-        pl.plot(times, acc_bias_spline[i,0] + bounds, 'r--')
-        pl.plot(times, acc_bias_spline[i,0] - bounds, 'r--')
+        pl.plot(times, acc_bias_spline[i,:] + bounds, 'r--')
+        pl.plot(times, acc_bias_spline[i,:] - bounds, 'r--')
 
 def plotAngularVelocityBias(cself, imu_idx, fno=1, clearFigure=True, noShow=False):
     imu = cself.ImuList[imu_idx]
@@ -175,8 +175,8 @@ def plotAngularVelocityBias(cself, imu_idx, fno=1, clearFigure=True, noShow=Fals
     bounds = 3. * sigma_rw * np.sqrt(times)
     for i in range(3):
         pl.subplot(3, 1, i+1)
-        pl.plot(times, gyro_bias_spline[i,0] + bounds, 'r--')
-        pl.plot(times, gyro_bias_spline[i,0] - bounds, 'r--')
+        pl.plot(times, gyro_bias_spline[i,:] + bounds, 'r--')
+        pl.plot(times, gyro_bias_spline[i,:] - bounds, 'r--')
 
 #plots angular velocity of the body fixed spline versus all imu measurements
 def plotAngularVelocities(cself, iidx, fno=1, clearFigure=True, noShow=False):
@@ -195,18 +195,18 @@ def plotAngularVelocities(cself, iidx, fno=1, clearFigure=True, noShow=False):
     #remove time offset
     times = times - times[0]
     
-    #plot the predicted measurements
-    plotVectorOverTime(times, predictedAng_body, 
-                       title="Comparison of predicted and measured angular velocities (body frame)", 
-                       ylabel="ang. velocity ($rad/s$)", 
-                       label="est. bodyspline",
-                       fno=fno, clearFigure=clearFigure, noShow=noShow, lw=3)
-    
-    #plot measurements
-    for r in range(0,3):
-        ax=pl.subplot(3, 1, r+1)
-        pl.plot(times, measuredAng_body[r,:], 'x', lw=1, label="imu{0}".format(iidx))
-        pl.legend()
+    plotVectorOverTime(
+        times,
+        predictedAng_body,
+        title="Comparison of predicted and measured angular velocities (body frame)",
+        ylabel="ang. velocity ($rad/s$)",
+        label="est. bodyspline",
+        measured_values=measuredAng_body,
+        measured_label="imu{0} measured".format(iidx),
+        fno=fno,
+        clearFigure=clearFigure,
+        noShow=noShow,
+    )
 
 def plotAccelerations(cself, iidx, fno=1, clearFigure=True, noShow=False):   
     #predicted 
@@ -226,32 +226,66 @@ def plotAccelerations(cself, iidx, fno=1, clearFigure=True, noShow=False):
     #remove time offset
     times = times - times[0] 
     
-    #plot the predicted measurements
-    plotVectorOverTime(times, predicetedAccel_body, 
-                       title="Comparison of predicted and measured specific force (imu0 frame)", 
-                       ylabel="specific force ($m/s^2$)", 
-                       label="est. bodyspline",
-                       fno=fno, clearFigure=clearFigure, noShow=noShow, lw=3)
-    
-    #plot the measurements
-    for r in range(0,3):
-        ax=pl.subplot(3, 1, r+1)
-        pl.plot(times, measuredAccel_body[r,:], 'x', lw=1, label="imu{0}".format(iidx))
-        pl.legend()
+    plotVectorOverTime(
+        times,
+        predicetedAccel_body,
+        title="Comparison of predicted and measured specific force (imu0 frame)",
+        ylabel="specific force ($m/s^2$)",
+        label="est. bodyspline",
+        measured_values=measuredAccel_body,
+        measured_label="imu{0} measured".format(iidx),
+        fno=fno,
+        clearFigure=clearFigure,
+        noShow=noShow,
+    )
 
-def plotVectorOverTime(times, values, title="", ylabel="", label="", fno=1, clearFigure=True, noShow=False, lw=3):
+def _measurement_plot_stride(num_samples, target_markers=2500):
+    if num_samples <= target_markers:
+        return 1
+    return int(np.ceil(float(num_samples) / float(target_markers)))
+
+
+def plotVectorOverTime(
+    times,
+    values,
+    title="",
+    ylabel="",
+    label="",
+    measured_values=None,
+    measured_label="",
+    fno=1,
+    clearFigure=True,
+    noShow=False,
+    lw=1.5,
+):
     f = pl.figure(fno)
     if clearFigure:
         f.clf()
     f.suptitle(title)
-    for r in range(0,3):
-        pl.subplot(3, 1, r+1)
-        pl.plot(times, values[r,:], 'b-', lw=lw, label=label)
-        pl.grid('on')
-        pl.xlabel("time (s)")
-        pl.ylabel(ylabel)
-        if label != "":
-            pl.legend()
+    markevery = _measurement_plot_stride(len(times))
+    for r in range(0, 3):
+        ax = f.add_subplot(3, 1, r + 1)
+        ax.plot(times, values[r, :], color="C0", lw=lw, alpha=0.85, label=label, zorder=2)
+        if measured_values is not None:
+            ax.plot(
+                times,
+                measured_values[r, :],
+                linestyle="none",
+                marker="x",
+                color="C3",
+                markersize=5,
+                markeredgewidth=1.2,
+                markevery=markevery,
+                alpha=0.9,
+                label=measured_label,
+                zorder=4,
+                rasterized=True,
+            )
+        ax.grid("on")
+        ax.set_xlabel("time (s)")
+        ax.set_ylabel(ylabel)
+        if label != "" or measured_label != "":
+            ax.legend(loc="upper right", fontsize=8)
 
 def plotReprojectionScatter(cself, cam_id, fno=1, clearFigure=True, noShow=False, title=""):
     cam = cself.CameraChain.camList[cam_id]
