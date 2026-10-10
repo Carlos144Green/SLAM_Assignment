@@ -4,6 +4,7 @@ from . import IccPlots as plots
 import sm
 import numpy as np
 import pylab as pl
+import os
 import sys
 import subprocess
 import yaml
@@ -258,7 +259,13 @@ def generateReport(cself, filename="report.pdf", showOnScreen=True):
     pdf.close()
 
     if showOnScreen:
-        plotter.show()
+        if os.environ.get("DISPLAY"):
+            plotter.show()
+        else:
+            print(
+                "Skipping on-screen calibration report (no DISPLAY). "
+                "PDF saved to: {0}".format(filename))
+            print("Pass --dont-show-report to suppress this message.")
 
 def exportPoses(cself, filename="poses_imu0.csv"):
     

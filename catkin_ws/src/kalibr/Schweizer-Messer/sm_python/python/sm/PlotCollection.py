@@ -56,6 +56,7 @@ class PlotCollection:
             return
         app = wx.App()
         frame = wx.Frame(None,-1,self.frame_name, size=self.window_size)
+        frame.SetMinSize((640, 480))
         plotter = self.PlotNotebook(frame)
         for name in list(self.figureList.keys()):
             plotter.add(name, self.figureList[name])
@@ -65,9 +66,10 @@ class PlotCollection:
     class Plot(wx.Panel):
         def __init__(self, parent, fig, id = -1, dpi = None, **kwargs):
             wx.Panel.__init__(self, parent, id=id, **kwargs)
-            fig.set_figheight(2)
-            fig.set_figwidth(2)
+            if fig.get_figwidth() < 6.0 or fig.get_figheight() < 4.0:
+                fig.set_size_inches(10.0, 8.0)
             self.canvas = Canvas(self, -1, fig)
+            self.canvas.SetMinSize((400, 300))
             self.toolbar = Toolbar(self.canvas)
             self.toolbar.Realize()
     

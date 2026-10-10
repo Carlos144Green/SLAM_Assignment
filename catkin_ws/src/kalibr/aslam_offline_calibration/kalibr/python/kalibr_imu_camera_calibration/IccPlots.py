@@ -146,17 +146,20 @@ def plotAccelBias(cself, imu_idx, fno=1, clearFigure=True, noShow=False):
     acc_bias_spline = np.array([bias.evalD(t,0) for t in times]).T
     times = times - times[0]     #remove time offset
 
-    plotVectorOverTime(times, acc_bias_spline, 
-                       title="imu{0}: estimated accelerometer bias (imu frame)".format(imu_idx), 
-                       ylabel="bias ($m/s^2$)", 
-                       fno=fno, clearFigure=clearFigure, noShow=noShow)
+    figure = plotVectorOverTime(
+        times,
+        acc_bias_spline,
+        title="imu{0}: estimated accelerometer bias (imu frame)".format(imu_idx),
+        ylabel="bias ($m/s^2$)",
+        fno=fno,
+        clearFigure=clearFigure,
+        noShow=noShow)
 
     sigma_rw = cself.ImuList[imu_idx].getImuConfig().getAccelerometerStatistics()[1]
     bounds = 3. * sigma_rw * np.sqrt(times)
     for i in range(3):
-        pl.subplot(3, 1, i+1)
-        pl.plot(times, acc_bias_spline[i,:] + bounds, 'r--')
-        pl.plot(times, acc_bias_spline[i,:] - bounds, 'r--')
+        figure.axes[i].plot(times, acc_bias_spline[i, :] + bounds, "r--")
+        figure.axes[i].plot(times, acc_bias_spline[i, :] - bounds, "r--")
 
 def plotAngularVelocityBias(cself, imu_idx, fno=1, clearFigure=True, noShow=False):
     imu = cself.ImuList[imu_idx]
@@ -166,17 +169,20 @@ def plotAngularVelocityBias(cself, imu_idx, fno=1, clearFigure=True, noShow=Fals
     gyro_bias_spline = np.array([bias.evalD(t,0) for t in times]).T
     times = times - times[0]     #remove time offset
     
-    plotVectorOverTime(times, gyro_bias_spline, 
-                       title="imu{0}: estimated gyro bias (imu frame)".format(imu_idx), 
-                       ylabel="bias ($rad/s$)", 
-                       fno=fno, clearFigure=clearFigure, noShow=noShow)
+    figure = plotVectorOverTime(
+        times,
+        gyro_bias_spline,
+        title="imu{0}: estimated gyro bias (imu frame)".format(imu_idx),
+        ylabel="bias ($rad/s$)",
+        fno=fno,
+        clearFigure=clearFigure,
+        noShow=noShow)
 
     sigma_rw = cself.ImuList[imu_idx].getImuConfig().getGyroStatistics()[1]
     bounds = 3. * sigma_rw * np.sqrt(times)
     for i in range(3):
-        pl.subplot(3, 1, i+1)
-        pl.plot(times, gyro_bias_spline[i,:] + bounds, 'r--')
-        pl.plot(times, gyro_bias_spline[i,:] - bounds, 'r--')
+        figure.axes[i].plot(times, gyro_bias_spline[i, :] + bounds, "r--")
+        figure.axes[i].plot(times, gyro_bias_spline[i, :] - bounds, "r--")
 
 #plots angular velocity of the body fixed spline versus all imu measurements
 def plotAngularVelocities(cself, iidx, fno=1, clearFigure=True, noShow=False):
@@ -286,6 +292,7 @@ def plotVectorOverTime(
         ax.set_ylabel(ylabel)
         if label != "" or measured_label != "":
             ax.legend(loc="upper right", fontsize=8)
+    return f
 
 def plotReprojectionScatter(cself, cam_id, fno=1, clearFigure=True, noShow=False, title=""):
     cam = cself.CameraChain.camList[cam_id]
