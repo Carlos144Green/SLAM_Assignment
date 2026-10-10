@@ -1,6 +1,18 @@
 import numpy as np
 import pylab as pl
 
+IMU_AXIS_NAMES = ["IMU x", "IMU y", "IMU z"]
+
+
+def label_imu_subplot_axes(figure):
+    for axis_index, axis in enumerate(figure.axes[: len(IMU_AXIS_NAMES)]):
+        axis.set_title(
+            IMU_AXIS_NAMES[axis_index],
+            loc="left",
+            fontsize=11,
+            fontweight="bold",
+            pad=12)
+
 
 def plotIMURates(cself, iidx, fno=1, clearFigure=True, noShow=False):   
     #timestamps we have me

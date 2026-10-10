@@ -14,6 +14,10 @@ rosrun kalibr kalibr_calibrate_cameras \
 Intertial Kalibr:
 rosrun kalibr kalibr_calibrate_imu_camera   --bag ~/data/omni_stereointertial_20260425_220304Z.bag   --cams ~/data/omni_stereo_20260425_215907Z-camchain-omni-50clipped-approx_005.yaml   --imu ~/config/imu.yaml   --target ~/config/aprilgrid.yaml   --bag-from-to 0 50
 
+Outputs in ~/data/ (no wx GUI; PDF only):
+  *-camchain-imucam.yaml, *-results-imucam.txt, *-report-imucam.pdf, *-report-imucam-readable.pdf
+Pull latest repo on the runtime machine before re-running if reports still crash.
+
 How to run bag as video (needs to be in docker env):
 1. roscore
 2. rosbag play ~/data/omni_stereointertial_20260425_220304Z.bag --clock
@@ -26,56 +30,4 @@ bash scripts/start.sh ros2
 
 
 ros2 launch stereo_vio stereo_vio.launch.py
-
-
-Results written to:
-  Saving camera chain calibration to file: /home/carlos/data/omni_stereointertial_20260425_220304Z-camchain-imucam.yaml
-  Saving imu calibration to file: /home/carlos/data/omni_stereointertial_20260425_220304Z-imu.yaml
-  Detailed results written to file: /home/carlos/data/omni_stereointertial_20260425_220304Z-results-imucam.txt
-
-Generating result report...
-Traceback (most recent call last):
-  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
-    self.bitmap = wx.Bitmap(self._width, self._height)
-wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
-Traceback (most recent call last):
-  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
-    self.bitmap = wx.Bitmap(self._width, self._height)
-wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
-Traceback (most recent call last):
-  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
-    self.bitmap = wx.Bitmap(self._width, self._height)
-wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
-Traceback (most recent call last):
-  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
-    self.bitmap = wx.Bitmap(self._width, self._height)
-wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
-Traceback (most recent call last):
-  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
-    self.bitmap = wx.Bitmap(self._width, self._height)
-wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
-Traceback (most recent call last):
-  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
-    self.bitmap = wx.Bitmap(self._width, self._height)
-wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
-Traceback (most recent call last):
-  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
-    self.bitmap = wx.Bitmap(self._width, self._height)
-wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
-Traceback (most recent call last):
-  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
-    self.bitmap = wx.Bitmap(self._width, self._height)
-wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
-Traceback (most recent call last):
-  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
-    self.bitmap = wx.Bitmap(self._width, self._height)
-wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
-Traceback (most recent call last):
-  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_wx.py", line 784, in _onSize
-    self.bitmap = wx.Bitmap(self._width, self._height)
-wx._core.wxAssertionError: C++ assertion ""width > 0 && height > 0"" failed at /tmp/pip-install-3stj9dt0/wxPython/ext/wxWidgets/src/gtk/bitmap.cpp(541) in Create(): invalid bitmap size
-
-** (kalibr_calibrate_imu_camera:18585): WARNING **: 18:12:11.152: atk-bridge: get_device_events_reply: unknown signature
-  Report written to /home/carlos/data/omni_stereointertial_20260425_220304Z-report-imucam.pdf
-
 

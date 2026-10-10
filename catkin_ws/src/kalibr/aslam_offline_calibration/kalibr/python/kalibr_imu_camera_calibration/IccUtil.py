@@ -1,10 +1,8 @@
 from __future__ import print_function #handle print in 2.x python
-from sm import PlotCollection
 from . import IccPlots as plots
 import sm
 import numpy as np
 import pylab as pl
-import os
 import sys
 import subprocess
 import yaml
@@ -18,10 +16,126 @@ try:
 except ImportError:
     # Python 3
     from io import StringIO
+import matplotlib
 import matplotlib.patches as patches
 
 # make numpy print prettier
 np.set_printoptions(suppress=True)
+
+
+def _ensure_pdf_backend():
+    backend = matplotlib.get_backend().lower()
+    if "agg" in backend:
+        return
+    try:
+        matplotlib.use("Agg", force=True)
+    except Exception:
+        pass
+
+
+def _new_report_figure(figure_number, readable=False):
+    if readable:
+        return pl.figure(figure_number, figsize=(11, 8.5))
+    return pl.figure(figure_number)
+
+
+def _build_report_figures(cself, offset=3010, readable=False):
+    figs = list()
+
+    sstream = StringIO()
+    printResultTxt(cself, sstream)
+    text = [line for line in StringIO(sstream.getvalue())]
+    lines_per_page = 30 if readable else 35
+    text_font_size = 9 if readable else 7
+
+    while True:
+        fig = _new_report_figure(offset, readable=readable)
+        offset += 1
+
+        left, width = 0.05, 1.0
+        bottom, height = -0.05, 1.0
+        ax = fig.add_axes([0.0, 0.0, 1.0, 1.0])
+        patches.Rectangle(
+            (left, bottom),
+            width,
+            height,
+            fill=False,
+            transform=ax.transAxes,
+            clip_on=False,
+            edgecolor="none",
+        )
+        pl.axis("off")
+
+        def print_text(text_block):
+            ax.text(
+                left,
+                bottom + height,
+                text_block,
+                fontsize=text_font_size,
+                horizontalalignment="left",
+                verticalalignment="top",
+                transform=ax.transAxes,
+                wrap=True,
+            )
+
+        if len(text) > lines_per_page:
+            print_text("".join(text[0:lines_per_page]))
+            figs.append(fig)
+            text = text[lines_per_page:]
+        else:
+            print_text("".join(text[0:]))
+            figs.append(fig)
+            break
+
+    trajectory_figure = _new_report_figure(1003, readable=readable)
+    plotTrajectory(
+        cself,
+        fno=trajectory_figure.number,
+        clearFigure=False,
+        title="imu0: estimated poses",
+    )
+    figs.append(trajectory_figure)
+
+    for iidx, imu in enumerate(cself.ImuList):
+        imu_plotters = (
+            (plots.plotIMURates, False),
+            (plots.plotAccelerations, True),
+            (plots.plotAccelErrorPerAxis, True),
+            (plots.plotAccelBias, True),
+            (plots.plotAngularVelocities, True),
+            (plots.plotGyroErrorPerAxis, True),
+            (plots.plotAngularVelocityBias, True),
+        )
+        for plotter, label_axes in imu_plotters:
+            figure = _new_report_figure(offset + iidx, readable=readable)
+            plotter(cself, iidx, fno=figure.number, noShow=True)
+            if readable and label_axes:
+                plots.label_imu_subplot_axes(figure)
+            figs.append(figure)
+            offset += len(cself.ImuList)
+
+    if cself.CameraChain:
+        for cidx, cam in enumerate(cself.CameraChain.camList):
+            figure = _new_report_figure(offset + cidx, readable=readable)
+            title = "cam{0}: reprojection errors".format(cidx)
+            plots.plotReprojectionScatter(
+                cself, cidx, fno=figure.number, noShow=True, title=title)
+            figs.append(figure)
+            offset += len(cself.CameraChain.camList)
+
+    return figs
+
+
+def _write_report_pdf(figs, filename, readable=False):
+    pdf = PdfPages(filename)
+    for figure in figs:
+        if readable:
+            pdf.savefig(figure, bbox_inches="tight")
+        else:
+            pdf.savefig(figure)
+    pdf.close()
+    for figure in figs:
+        pl.close(figure)
 
 
 def plotTrajectory(cself, fno=1, clearFigure=True, title=""):
@@ -150,122 +264,20 @@ def printBaselines(self):
     
 
 
-def generateReport(cself, filename="report.pdf", showOnScreen=True):
-    figs = list()
-    plotter = PlotCollection.PlotCollection("Calibration report")
-    offset = 3010
-    
-    #Output calibration results in text form.
-    sstream = StringIO()
-    printResultTxt(cself, sstream)
-    text = [line for line in StringIO(sstream.getvalue())]
-    linesPerPage = 35
-    
-    while True:
-        fig = pl.figure(offset)
-        offset += 1
-
-        left, width = .05, 1.
-        bottom, height = -.05, 1.
-        right = left + width
-        top = bottom + height
-        
-        ax = fig.add_axes([.0, .0, 1., 1.])
-        # axes coordinates are 0,0 is bottom left and 1,1 is upper right
-        p = patches.Rectangle((left, bottom), width, height, fill=False, transform=ax.transAxes, \
-                                 clip_on=False, edgecolor="none")
-        ax.add_patch(p)
-        pl.axis('off')
-
-        printText = lambda t: ax.text(left, top, t, fontsize=7, \
-                                     horizontalalignment='left', verticalalignment='top',\
-                                     transform=ax.transAxes, wrap=True)
-        
-        if len(text) > linesPerPage:
-            printText("".join(text[0:linesPerPage]))
-            figs.append(fig)
-            text = text[linesPerPage:]
-        else:
-            printText("".join(text[0:]))
-            figs.append(fig)
-            break
-    
-    #plot trajectory
-    f=pl.figure(1003)
-    title="imu0: estimated poses"
-    plotTrajectory(cself, fno=f.number, clearFigure=False, title=title)
-    plotter.add_figure(title, f)
-    figs.append(f)
-    
-    #plot imu stuff (if we have imus)
-    for iidx, imu in enumerate(cself.ImuList):
-
-        f = pl.figure(offset+iidx)
-        plots.plotIMURates(cself, iidx, fno=f.number, noShow=True)
-        plotter.add_figure("imu{0}: measurement rates".format(iidx), f)
-        figs.append(f)
-        offset += len(cself.ImuList)
-
-        f = pl.figure(offset+iidx)
-        plots.plotAccelerations(cself, iidx, fno=f.number, noShow=True)
-        plotter.add_figure("imu{0}: accelerations".format(iidx), f)
-        figs.append(f)
-        offset += len(cself.ImuList)
-
-        f = pl.figure(offset+iidx)
-        plots.plotAccelErrorPerAxis(cself, iidx, fno=f.number, noShow=True)
-        plotter.add_figure("imu{0}: acceleration error".format(iidx), f)
-        figs.append(f)
-        offset += len(cself.ImuList)
-
-        f = pl.figure(offset+iidx)
-        plots.plotAccelBias(cself, iidx, fno=f.number, noShow=True)
-        plotter.add_figure("imu{0}: accelerometer bias".format(iidx), f)
-        figs.append(f)
-        offset += len(cself.ImuList)
-
-        f = pl.figure(offset+iidx)
-        plots.plotAngularVelocities(cself, iidx, fno=f.number, noShow=True)
-        plotter.add_figure("imu{0}: angular velocities".format(iidx), f)
-        figs.append(f)
-        offset += len(cself.ImuList)
-
-        f = pl.figure(offset+iidx)
-        plots.plotGyroErrorPerAxis(cself, iidx, fno=f.number, noShow=True)
-        plotter.add_figure("imu{0}: angular velocity error".format(iidx), f)
-        figs.append(f)
-        offset += len(cself.ImuList)
-
-        f = pl.figure(offset+iidx)
-        plots.plotAngularVelocityBias(cself, iidx, fno=f.number, noShow=True)
-        plotter.add_figure("imu{0}: gyroscope bias".format(iidx), f)
-        figs.append(f)
-        offset += len(cself.ImuList)
-
-    #plot cam stuff
-    if cself.CameraChain:        
-        for cidx, cam in enumerate(cself.CameraChain.camList):
-            f = pl.figure(offset+cidx)
-            title="cam{0}: reprojection errors".format(cidx);
-            plots.plotReprojectionScatter(cself, cidx, fno=f.number, noShow=True, title=title)
-            plotter.add_figure(title, f)
-            figs.append(f)
-            offset += len(cself.CameraChain.camList)
-
-    #write to pdf
-    pdf=PdfPages(filename)
-    for fig in figs:
-        pdf.savefig(fig)
-    pdf.close()
-
+def generateReport(cself, filename="report.pdf", showOnScreen=False):
+    _ensure_pdf_backend()
+    figs = _build_report_figures(cself, offset=3010, readable=False)
+    _write_report_pdf(figs, filename, readable=False)
     if showOnScreen:
-        if os.environ.get("DISPLAY"):
-            plotter.show()
-        else:
-            print(
-                "Skipping on-screen calibration report (no DISPLAY). "
-                "PDF saved to: {0}".format(filename))
-            print("Pass --dont-show-report to suppress this message.")
+        print(
+            "Interactive wx report viewer is disabled in this Kalibr build. "
+            "Open the PDF reports instead: {0}".format(filename))
+
+
+def generateReadableReport(cself, filename="report-readable.pdf"):
+    _ensure_pdf_backend()
+    figs = _build_report_figures(cself, offset=4010, readable=True)
+    _write_report_pdf(figs, filename, readable=True)
 
 def exportPoses(cself, filename="poses_imu0.csv"):
     
