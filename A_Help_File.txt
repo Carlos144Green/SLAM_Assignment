@@ -14,9 +14,6 @@ rosrun kalibr kalibr_calibrate_cameras \
 Intertial Kalibr:
 rosrun kalibr kalibr_calibrate_imu_camera   --bag ~/data/omni_stereointertial_20260425_220304Z.bag   --cams ~/data/omni_stereo_20260425_215907Z-camchain-omni-50clipped-approx_005.yaml   --imu ~/config/imu.yaml   --target ~/config/aprilgrid.yaml   --bag-from-to 0 50
 
-Outputs in ~/data/ (no wx GUI; PDF only):
-  *-camchain-imucam.yaml, *-results-imucam.txt, *-report-imucam.pdf, *-report-imucam-readable.pdf
-Pull latest repo on the runtime machine before re-running if reports still crash.
 
 How to run bag as video (needs to be in docker env):
 1. roscore
