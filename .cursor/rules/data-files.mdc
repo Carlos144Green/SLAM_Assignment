@@ -1,0 +1,11 @@
+---
+description: Data file names are listed in the project ignore file
+alwaysApply: true
+---
+
+# Data file names
+
+Data file names for this project are listed in `.gitignore`.
+
+- Read `.gitignore` when you need the names or paths of datasets, bags, recordings, or other data files.
+- Do not invent or guess data file names.

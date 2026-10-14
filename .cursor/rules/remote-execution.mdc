@@ -1,0 +1,13 @@
+---
+description: This repo is edited locally but run on another machine
+alwaysApply: true
+---
+
+# Remote execution environment
+
+This SLAM project is **not run on the machine where Cursor is open**. Builds, ROS nodes, calibration, bag playback, and hardware tests happen on **another computer**.
+
+- All project files **are present locally** in this workspace. Continue editing configs, source, launch files, and docs here as usual.
+- **Apply fixes and changes in the repo** when the user asks—do not refuse work because the runtime is elsewhere.
+- Do **not** assume you can verify behavior by running the full stack locally unless the user explicitly says this machine is the runtime.
+- When suggesting verification, prefer commands the user can run on the **remote/runtime machine**, or describe what to check there after pulling/syncing changes.
