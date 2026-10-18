@@ -692,12 +692,12 @@ void StereoCalibrationPublisher::publish_left_camera_info(
       this->get_logger(),
       *this->get_clock(),
       2000,
-      "Failed to publish left rectified image (%ux%u, encoding '%s', calib %dx%d): %s",
+      "Failed to publish left rectified image (%ux%u, encoding '%s', calib %ldx%ld): %s",
       image_msg->width,
       image_msg->height,
       image_msg->encoding.c_str(),
-      this->image_size_[0],
-      this->image_size_[1],
+      static_cast<long>(this->image_size_[0]),
+      static_cast<long>(this->image_size_[1]),
       error.what());
   }
 }
@@ -717,12 +717,12 @@ void StereoCalibrationPublisher::publish_right_camera_info(
       this->get_logger(),
       *this->get_clock(),
       2000,
-      "Failed to publish right rectified image (%ux%u, encoding '%s', calib %dx%d): %s",
+      "Failed to publish right rectified image (%ux%u, encoding '%s', calib %ldx%ld): %s",
       image_msg->width,
       image_msg->height,
       image_msg->encoding.c_str(),
-      this->image_size_[0],
-      this->image_size_[1],
+      static_cast<long>(this->image_size_[0]),
+      static_cast<long>(this->image_size_[1]),
       error.what());
   }
 }
