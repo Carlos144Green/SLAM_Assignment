@@ -1,2 +1,15 @@
 Stereo VIO odometry error summary
-Waiting for synchronized odometry samples.
+Duration: 25.9998 s | Samples: 1038 | RPE samples: 1037
+
+Absolute pose error
+  ATE [m]:       final 1.4339 | RMSE 1.4982
+  ARE [deg]:     final 4.7678 | RMSE 6.0523
+
+Relative pose error
+  Translation [m]:   final 0.0486 | RMSE 0.0242
+  Rotation [deg]:    final 1.7421 | RMSE 0.4631
+
+Distance travelled
+  Ground truth [m]:  29.2806
+  Stereo VIO [m]:    31.0018
+  Difference [m]:    1.7212
