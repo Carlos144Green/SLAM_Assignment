@@ -25,6 +25,15 @@ How to run bag as video (needs to be in docker env):
 Start Ros2 Docker:
 bash scripts/start.sh ros2
 
-
+Run the comparison:
 ros2 launch stereo_vio stereo_vio.launch.py
+
+If comparison doesn't print:
+does not run: 	ros2 topic hz /stereo_vio/odom
+runs: 		ros2 topic hz /ground_truth/odom
+
+does not run:	ros2 topic hz /stereo/right/color/image_rect
+		ros2 topic hz /stereo/left/color/image_rect
+runs:		ros2 topic hz /stereo/left/color/camera_info_rect
+
 

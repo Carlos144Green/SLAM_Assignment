@@ -1,0 +1,2 @@
+Stereo VIO odometry error summary
+Waiting for synchronized odometry samples.
