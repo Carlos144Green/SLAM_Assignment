@@ -444,10 +444,10 @@ void StereoCalibrationPublisher::compute_rectified_camera_infos()
     camera_matrix_from_intrinsics(this->right_camera_.intrinsics);
   const Eigen::Matrix<double, 1, 4> d_left_eigen = use_omni_model ?
     Eigen::Matrix<double, 1, 4>::Zero() :
-    this->left_camera_.distortion.transpose();
+    this->left_camera_.distortion.transpose().eval();
   const Eigen::Matrix<double, 1, 4> d_right_eigen = use_omni_model ?
     Eigen::Matrix<double, 1, 4>::Zero() :
-    this->right_camera_.distortion.transpose();
+    this->right_camera_.distortion.transpose().eval();
 
   cv::Mat k_left;
   cv::Mat k_right;
